@@ -1,0 +1,12 @@
+d_model: 384
+dropout: 0.1
+emb_k: 16
+emb_p: 2.0
+features: 48
+heads: 8
+num_df: 12
+num_layers: 6
+scaler: 2
+stride: 2
+tf_pre_norm: true
+embedding_version: 'v1'
