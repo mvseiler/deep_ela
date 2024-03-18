@@ -26,9 +26,9 @@ class DeepELA(EncoderBackbone):
         ## Set device and eval
         self.to(device).eval()
         
-    def __call__(self, X, y, include_costs=False):
+    def __call__(self, X, y, include_costs=False, repetitions=10):
         start = time.time() # Measure runtime
-        features = super().predict(coordinates=X, fvalues=y, return_embeddings=False)
+        features = super().predict(coordinates=X, fvalues=y, repetitions=repetitions, return_embeddings=False)
         features = {f'{self.name}.X{i}': f for i,f in enumerate(features)}
         if include_costs:
             features[f'{self.name}.costs_runtime'] = time.time() - start
@@ -38,16 +38,16 @@ class DeepELA(EncoderBackbone):
 ## Simple loader functions    
 def load_medium_25d_v1(device='cpu'):
     name = 'deep_ela.medium_25d_v1'
-    return DeepELA(name, path_dir=f'{BASE_DIR}/models/medium_25d_v1', device=device)
+    return DeepELA(name, path_dir=f'{BASE_DIR}/models/medium_25d_v1', device=device).train(False)
 
 def load_medium_50d_v1(device='cpu'):
     name = 'deep_ela.medium_50d_v1'
-    return DeepELA(name, path_dir=f'{BASE_DIR}/models/medium_50d_v1', device=device)
+    return DeepELA(name, path_dir=f'{BASE_DIR}/models/medium_50d_v1', device=device).train(False)
     
 def load_large_25d_v1(device='cpu'):
     name = 'deep_ela.large_25d_v1'
-    return DeepELA(name, path_dir=f'{BASE_DIR}/models/large_25d_v1', device=device)
+    return DeepELA(name, path_dir=f'{BASE_DIR}/models/large_25d_v1', device=device).train(False)
 
 def load_large_50d_v1(device='cpu'):
     name = 'deep_ela.large_50d_v1'
-    return DeepELA(name, path_dir=f'{BASE_DIR}/models/large_50d_v1', device=device)
+    return DeepELA(name, path_dir=f'{BASE_DIR}/models/large_50d_v1', device=device).train(False)

@@ -4,8 +4,6 @@ import lightning.pytorch as pl
 from .pytorch_modules.layers import *
 from .pytorch_modules.functional import masked_mean, convert_attn_mask_mha
 
-# Paper: https://www.honda-ri.de/pubs/pdf/4503.pdf
-
 ### Model for final prediction (Does not have training layers)
 class EncoderBackbone(pl.LightningModule):
     def __init__(self, num_df, d_model, heads=6, num_layers=4, features=32, scaler=2, dropout=0.1, 
@@ -66,7 +64,7 @@ class EncoderBackbone(pl.LightningModule):
         x_feat = self.feature_extractor(x, attn_mask)
         return x_feat, x, attn_mask
     
-    def predict(self, coordinates, fvalues, **kwargs):
+    def predict(self, coordinates, fvalues, repetitions=1, **kwargs):
         n_points, n_dim = coordinates.shape
         fvalues = np.expand_dims(fvalues, 1) if len(fvalues.shape) == 1 else fvalues
             
@@ -78,16 +76,24 @@ class EncoderBackbone(pl.LightningModule):
         features[n_dim:] = 1
         x[:,:n_dim_total] = data
         
+        ## Random permute dimensions
+        all_x = []
+        all_f = []
+        for _ in range(repetitions):
+            dim_idx = torch.randperm(self.num_df, dtype=torch.long)
+            all_x.append(x[:,dim_idx])
+            all_f.append(features[dim_idx])
+        
         ## Convert to tensor
-        x = torch.tensor(x, dtype=torch.float32).unsqueeze(0).to(self.device)
-        features = torch.tensor(features, dtype=torch.float32).unsqueeze(0).to(self.device)
+        x = torch.tensor(np.array(all_x), dtype=torch.float32).to(self.device)
+        features = torch.tensor(np.array(all_f), dtype=torch.float32).to(self.device)
         
         ## Apply model
         x_feat, emb = self.predict_batch(x=x, features=features, **kwargs)
         if emb is not None:
-            return x_feat.cpu().squeeze(0).numpy(), emb.cpu().squeeze(0).numpy()
+            return x_feat.cpu().mean(0).numpy(), emb.cpu().squeeze(0).numpy()
         else:
-            return x_feat.cpu().squeeze(0).numpy()
+            return x_feat.cpu().mean(0).numpy()
         
     def predict_batch(self, *args, return_embeddings=False, **kwargs):
         with torch.no_grad():
