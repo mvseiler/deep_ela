@@ -16,7 +16,7 @@ cp -rf MANIFEST.in pflacco/
 cp -rf setup.py pflacco/
 cp -r deep_ela pflacco/pflacco
 cd pflacco
-python setup.py install
+python -m pip install .
 ```
 
 ## Quickstart
