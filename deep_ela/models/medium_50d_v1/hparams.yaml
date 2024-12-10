@@ -8,5 +8,5 @@ num_df: 6
 num_layers: 6
 scaler: 2
 stride: 1
-tf_pre_norm: true
-embedding_version: 'v1'
+#tf_pre_norm: true
+#embedding_version: 'v1'

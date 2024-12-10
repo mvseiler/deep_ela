@@ -22,7 +22,7 @@ class DeepELA(EncoderBackbone):
             config = yaml.safe_load(f.read())
         super().__init__(**config)
         ## Load parameters
-        self.load_state_dict(torch.load(path_ckpt))
+        self.load_state_dict(torch.load(path_ckpt, weights_only=True)) 
         ## Set device and eval
         self.to(device).eval()
         
