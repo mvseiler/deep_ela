@@ -56,25 +56,33 @@ class DeepELA(EncoderBackbone):
 
 ## Simple loader functions
 ##
-## `stride` and `repetitions` may be set here or overridden per call. `stride=None` takes
-## whatever the checkpoint's hparams.yaml specifies, which is 1 for the medium models and 2
-## for the large ones.
-def load_medium_25d_v1(device='cpu', stride=None, repetitions=10):
+## `stride` defaults to the value each checkpoint was published with: 1 for the medium
+## models, 2 for the large ones. `stride=1` is RECOMMENDED for the large models -- it is
+## what forward() uses to keep every stride-th token after the kNN embedding, so stride 2
+## sees half the points. Measured on BBOB at dim 5, stride 2 costs about twice the feature
+## noise and about twice the sample budget, for roughly 2.5x the throughput. Pass
+## `stride=None` to follow the checkpoint explicitly.
+##
+## `repetitions` averages predict() over random permutations of the num_df slots. Feature
+## quality saturates by about 10; beyond that it only buys reproducibility (the jitter falls
+## as 1/sqrt(repetitions)), so use 50 or more when a number has to reproduce.
+def load_medium_25d_v1(device='cpu', stride=1, repetitions=10):
     name = 'deep_ela.medium_25d_v1'
     return DeepELA(name, path_dir=f'{BASE_DIR}/models/medium_25d_v1', device=device,
                    stride=stride, repetitions=repetitions).train(False)
 
-def load_medium_50d_v1(device='cpu', stride=None, repetitions=10):
+def load_medium_50d_v1(device='cpu', stride=1, repetitions=10):
     name = 'deep_ela.medium_50d_v1'
     return DeepELA(name, path_dir=f'{BASE_DIR}/models/medium_50d_v1', device=device,
                    stride=stride, repetitions=repetitions).train(False)
 
-def load_large_25d_v1(device='cpu', stride=None, repetitions=10):
+## stride=2 is what these two shipped with; stride=1 gives markedly better features.
+def load_large_25d_v1(device='cpu', stride=2, repetitions=10):
     name = 'deep_ela.large_25d_v1'
     return DeepELA(name, path_dir=f'{BASE_DIR}/models/large_25d_v1', device=device,
                    stride=stride, repetitions=repetitions).train(False)
 
-def load_large_50d_v1(device='cpu', stride=None, repetitions=10):
+def load_large_50d_v1(device='cpu', stride=2, repetitions=10):
     name = 'deep_ela.large_50d_v1'
     return DeepELA(name, path_dir=f'{BASE_DIR}/models/large_50d_v1', device=device,
                    stride=stride, repetitions=repetitions).train(False)
