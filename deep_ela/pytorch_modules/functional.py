@@ -70,6 +70,9 @@ def masked_fill(x, attn_mask=None):
 def convert_attn_mask_mha(attn_mask, num_heads):
     n_batch, n_seq = attn_mask.shape[:2]
     # get correct Attention Mask (twice for both directions)
-    attn_mask_mha  = repeat(attn_mask.squeeze(-1), 'b n -> (b h) n m', m=n_seq, h=num_heads)
-    attn_mask_mha |= repeat(attn_mask.squeeze(-1), 'b n -> (b h) m n', m=n_seq, h=num_heads)
+    # `repeat` returns an expanded view, so the in-place `|=` this used to do writes several
+    # output elements to one storage location and torch refuses it outright. Combining
+    # out-of-place allocates the result once and works on every version.
+    attn_mask_mha = (repeat(attn_mask.squeeze(-1), 'b n -> (b h) n m', m=n_seq, h=num_heads)
+                     | repeat(attn_mask.squeeze(-1), 'b n -> (b h) m n', m=n_seq, h=num_heads))
     return attn_mask_mha

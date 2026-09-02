@@ -51,7 +51,10 @@ class EncoderBackbone(pl.LightningModule):
         if stride > 1:
             x = x[:,::stride,:]
             
-        if self.stride > 1 and attn_mask is not None:
+        if stride > 1 and attn_mask is not None:
+            # Guard on the effective stride, not self.stride: x above is subsampled whenever the
+            # call-time stride exceeds 1, so testing the checkpoint's value here left the mask at
+            # full length whenever a caller overrode the stride upward.
             attn_mask = attn_mask[:,::stride,:]
         
         ## Execute Transformer Encoder
