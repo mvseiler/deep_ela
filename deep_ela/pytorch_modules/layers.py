@@ -65,13 +65,19 @@ class KNNEmbedding(nn.Module):
         )
     
     def _forward(self, x, features, attn_mask=None, masking=0.):
-        n_batch, n_points, n_dim = x.shape
-        n_target = 2 * n_dim
-        features_ = features.unsqueeze(1) > 0.1
+        if isinstance(x, tuple) and len(x) == 2:
+            n_batch, n_points, n_dim = x[0].shape
+            n_target = 2 * n_dim
+            x_crd, x_ftr = x
+        else:
+            n_batch, n_points, n_dim = x.shape
+            n_target = 2 * n_dim
+            features_ = features.unsqueeze(1) > 0.1
+            
+            x_crd = x.masked_fill(features_, 0.)
+            x_ftr = x.masked_fill(~features_, 0.)
         
         ## Standardize x but save unstandardized coord values for kNN
-        x_crd = x.masked_fill(features_, 0.)
-        x_ftr = x.masked_fill(~features_, 0.)
         x = torch.cat([x_crd, x_ftr], dim=-1)
         x_mean, x_std = masked_mean(x, attn_mask, 1, keepdim=True), masked_std(x, attn_mask, 1, keepdim=True)
         x = (x - x_mean) / (x_std + 1e-5)

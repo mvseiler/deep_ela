@@ -29,17 +29,23 @@ class EncoderBackbone(pl.LightningModule):
         self.save_hyperparameters()
             
     def forward(self, x, features, attn_mask=None, stride=None, track_attn=False):
-        assert len(x.shape) == 3, f'Shape of x must be of length three: Batch, Num, Dim; but is {x.shape}!'
         assert attn_mask is None or len(attn_mask.shape) == 3, f'Shape of attn_mask must be None or of length three: ' + \
                                                                f'Batch, Num, 1; but is {attn_mask.shape}!'
-        assert features.shape == (x.shape[0], x.shape[2]), f'Features ({features.shape}) must have same dimensions \
-                                                            as x ({x.shape}) except for second dim!'
         assert isinstance(stride, int) or stride is None, f'stride must be of type int or None but is {type(stride)}!'
         stride = self.stride if stride is None else stride
         
         ## Execute encoding and embedding.
-        n_batch, n_num, n_dim = x.shape
-        x, _ = self.emb_layer(x, features, attn_mask, 0.) # Execute Embedding
+        if isinstance(x, tuple) and len(x) == 2:
+            assert len(x[0].shape) == 3, f'Shape of x must be of length three: Batch, Num, Dim; but is {x[0].shape}!'
+            assert len(x[1].shape) == 3, f'Shape of x must be of length three: Batch, Num, Dim; but is {x[1].shape}!'
+            n_batch, n_num, n_dim = x[0].shape
+            x, _ = self.emb_layer(x, None, attn_mask, 0.) # Execute Embedding
+        else:
+            assert len(x.shape) == 3, f'Shape of x must be of length three: Batch, Num, Dim; but is {x.shape}!'
+            assert features.shape == (x.shape[0], x.shape[2]), f'Features ({features.shape}) must have same dimensions \
+                                                            as x ({x.shape}) except for second dim!'
+            n_batch, n_num, n_dim = x.shape
+            x, _ = self.emb_layer(x, features, attn_mask, 0.) # Execute Embedding
         
         ## Execute stride
         if stride > 1:
@@ -58,33 +64,32 @@ class EncoderBackbone(pl.LightningModule):
         x = self.out_norm(x)
         x_feat = self.feature_extractor(x, attn_mask)
         return x_feat, x, attn_mask
-    
+        
     def predict(self, coordinates, fvalues, repetitions=1, **kwargs):
-        n_points, n_dim = coordinates.shape
         fvalues = np.expand_dims(fvalues, 1) if len(fvalues.shape) == 1 else fvalues
+        n_points, n_dim = coordinates.shape
+        _, n_obj = fvalues.shape
             
         ## Prepare data
-        data = np.concatenate([coordinates, fvalues], axis=1)
-        n_dim_total = data.shape[1]
-        x = np.zeros((n_points, self.num_df))
-        features = np.zeros(self.num_df)
-        features[n_dim:] = 1
-        x[:,:n_dim_total] = data
+        x_crd = np.zeros((n_points, self.num_df))
+        x_ftr = np.zeros((n_points, self.num_df))
+        x_crd[:,:n_dim] = coordinates
+        x_ftr[:,(-n_obj):] = fvalues
         
         ## Random permute dimensions
-        all_x = []
-        all_f = []
+        all_crd = []
+        all_ftr = []
         for _ in range(repetitions):
             dim_idx = torch.randperm(self.num_df, dtype=torch.long)
-            all_x.append(x[:,dim_idx])
-            all_f.append(features[dim_idx])
+            all_crd.append(x_crd[:,dim_idx])
+            all_ftr.append(x_ftr[:,dim_idx])
         
         ## Convert to tensor
-        x = torch.tensor(np.array(all_x), dtype=torch.float32).to(self.device)
-        features = torch.tensor(np.array(all_f), dtype=torch.float32).to(self.device)
+        x_crd = torch.tensor(np.array(all_crd), dtype=torch.float32).to(self.device)
+        x_ftr = torch.tensor(np.array(all_ftr), dtype=torch.float32).to(self.device)
         
         ## Apply model
-        x_feat, emb = self.predict_batch(x=x, features=features, **kwargs)
+        x_feat, emb = self.predict_batch(x=(x_crd, x_ftr), features=None, **kwargs)
         if emb is not None:
             return x_feat.cpu().mean(0).numpy(), emb.cpu().squeeze(0).numpy()
         else:
