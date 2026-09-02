@@ -1,26 +1,36 @@
 # Deep ELA: Deep Exploratory Landscape Analysis with Self-Supervised Pretrained Transformers for Single- and Multi-Objective Continuous Optimization Problems
-This package is an extention to the pflacco package: [https://github.com/Reiyan/pflacco.git](https://github.com/Reiyan/pflacco.git). Deep-ELA is still in an early development phase. Thus be cautious!
+Deep-ELA complements the pflacco package: [https://github.com/Reiyan/pflacco.git](https://github.com/Reiyan/pflacco.git). It is a standalone package that installs alongside pflacco rather than into it, so the learned and the classical features can be computed on the same sample. Deep-ELA is still in an early development phase. Thus be cautious!
 
 ## Setup
-To include Deep ELA to pflacco, the following script can be executed. It does everyhing for you:
+
 ```bash
-sh install.sh
+pip install git+https://github.com/mvseiler/deep_ela.git
 ```
 
-Otherwise, please execute the following steps:
+or, for the classical ELA features alongside the learned ones:
+
 ```bash
-python -m pip uninstall pflacco --yes
-python -m pip install -r requirements.txt
-git clone https://github.com/Reiyan/pflacco.git
-cp -rf MANIFEST.in pflacco/
-cp -rf setup.py pflacco/
-cp -r deep_ela pflacco/pflacco
-cd pflacco
-python -m pip install .
+pip install "deep-ela[ela] @ git+https://github.com/mvseiler/deep_ela.git"
 ```
+
+Deep-ELA is a standalone package — it imports nothing from pflacco — so pflacco
+stays an ordinary, independently upgradable dependency. Earlier versions grafted
+`deep_ela` into a pflacco checkout and installed the result *as* pflacco, which
+uninstalled the real one and made `pip install -U pflacco` silently remove
+Deep-ELA. If you installed that way, clear it first:
+
+```bash
+pip uninstall deep-ela pflacco --yes
+pip install pflacco "deep-ela @ git+https://github.com/mvseiler/deep_ela.git"
+```
+
+**The import path changed with this**: `from deep_ela import ...`, not
+`from pflacco.deep_ela import ...`.
 
 ## Quickstart
-Small, extended example from the pflacco package:
+Small, extended example from the pflacco package. It uses pflacco for the sampling
+and the classical features, so install the `[ela]` extra (or pflacco separately) to
+run it as written:
 ```python
 from pflacco.sampling import create_initial_sample
 
@@ -28,7 +38,7 @@ from pflacco.classical_ela_features import calculate_ela_distribution
 from pflacco.misc_features import calculate_fitness_distance_correlation
 
 # This is new
-from pflacco.deep_ela import load_medium_50d_v1, load_large_50d_v1
+from deep_ela import load_medium_50d_v1, load_large_50d_v1
 model = load_medium_50d_v1()
 
 # The large models were published with stride=2, which keeps only every second token after
@@ -38,11 +48,11 @@ model_large = load_large_50d_v1(stride=1)
 
 # Arbitrary objective function
 def objective_function_1(x):
-    return x[0]**2 - x[1]**2
+    return x.iloc[0]**2 - x.iloc[1]**2
 
 # It also accepts multi-objective problems. So, let's define a second objective
 def objective_function_2(x):
-    return x[0]**0.5 - x[1]
+    return abs(x.iloc[0])**0.5 - x.iloc[1]
 
 dim = 2
 # Create inital sample using latin hyper cube sampling

@@ -1,6 +1,0 @@
-einops
-glob2
-lightning
-torch
-tqdm
-PyYAML

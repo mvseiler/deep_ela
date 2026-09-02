@@ -1,5 +1,0 @@
-include README.md
-include LICENSE
-include requirements.txt
-include pflacco/deep_ela/models/*/*.ckpt
-include pflacco/deep_ela/models/*/*.yaml

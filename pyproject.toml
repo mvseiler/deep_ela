@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "deep-ela"
+version = "1.0.0"
+description = "Deep Exploratory Landscape Analysis: self-supervised pretrained transformers for single- and multi-objective continuous optimization problems."
+readme = "Readme.md"
+license = { file = "LICENSE" }
+authors = [{ name = "Moritz Seiler" }]
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Science/Research",
+]
+
+# deep_ela imports nothing from pflacco, so pflacco is a peer rather than a host.
+dependencies = [
+    "torch",
+    "lightning",
+    "einops",
+    "numpy",
+    "PyYAML",
+]
+
+[project.optional-dependencies]
+# Classical ELA features alongside the learned ones: pip install "deep-ela[ela]"
+ela = ["pflacco>=1.2.3"]
+
+[project.urls]
+Homepage = "https://github.com/mvseiler/deep_ela"
+
+[tool.setuptools]
+packages = ["deep_ela", "deep_ela.pytorch_modules"]
+
+[tool.setuptools.package-data]
+deep_ela = ["models/*/*.ckpt", "models/*/*.yaml"]
